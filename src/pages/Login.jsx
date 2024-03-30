@@ -1,12 +1,56 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useContext, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { BASE_URL } from "../config.js";
+import { authContext } from "../context/AuthContext.jsx";
+import HashLoader from "react-spinners/HashLoader.js";
 function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { dispatch } = useContext(authContext);
+
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.Login });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const submitHandler = async (e) => {
+    e.preventDefault();
+    console.log("Sending");
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${BASE_URL}/auth/login`, {
+        method: "post",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.message);
+      }
+
+      dispatch({
+        type: "LOGIN_SUCCESS",
+        payload: {
+          user: result.data,
+          token: result.token,
+          role: result.role,
+        },
+      });
+
+      setLoading(false);
+      toast.success(result.message);
+      navigate("/home");
+    } catch (error) {
+      toast.error(error);
+      setLoading(false);
+    }
   };
   return (
     <section className="px-5 lg:px-0">
@@ -15,7 +59,7 @@ function Login() {
           Hello <span className="text-primaryColor">Welcome</span>Back 🎉
         </h3>
 
-        <form className="py-4 md:py-0">
+        <form className="py-4 md:py-0" onSubmit={submitHandler}>
           <div className="mb-5">
             <input
               type="email"
@@ -31,7 +75,7 @@ function Login() {
             <input
               type="password"
               placeholder="Enter Your Password"
-              name="email"
+              name="password"
               value={formData.password}
               onChange={handleInputChange}
               className="w-full px-4 py-3 border-b border-solid border-[#0066ff61] focus:outline-none focus:border-b-primaryColor text-[16px] leading-7 text-headingColor placeholder:text-textColor rounded-md cursor-pointer"
@@ -41,10 +85,11 @@ function Login() {
 
           <div className="mt-7">
             <button
+              disabled={loading && true}
               type="submit"
               className="w-full bg-primaryColor text-white text-[18px] leading-[30px] rounded-lg px-4 py-4"
             >
-              Login
+              {loading ? <HashLoader size={25} color="#fff" /> : "Login"}
             </button>
           </div>
           <p className="mt-5 text-textColor text-center">
